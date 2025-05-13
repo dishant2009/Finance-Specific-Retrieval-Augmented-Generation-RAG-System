@@ -1,0 +1,70 @@
+# Financial RAG System Docker Container
+FROM python:3.9-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first (for better caching)
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p data/documents data/embeddings models/fine_tuned logs outputs/evaluations outputs/responses
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV TOKENIZERS_PARALLELISM=false
+
+# Expose port for API (if implementing web interface)
+EXPOSE 8000
+
+# Create non-root user for security
+RUN useradd -m -u 1000 finrag && chown -R finrag:finrag /app
+USER finrag
+
+# Default command
+CMD ["python", "main.py"]
+
+# Multi-stage build for production
+FROM python:3.9-slim AS production
+
+WORKDIR /app
+
+# Install only production dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip cache purge
+
+# Copy application code
+COPY --from=builder /app .
+
+# Create directories
+RUN mkdir -p data models logs outputs
+
+# Security: non-root user
+RUN useradd -m -u 1000 finrag && chown -R finrag:finrag /app
+USER finrag
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD python -c "import sys; sys.exit(0)"
+
+CMD ["python", "main.py"]

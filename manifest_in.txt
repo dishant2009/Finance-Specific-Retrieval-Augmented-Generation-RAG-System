@@ -1,0 +1,35 @@
+# Manifest file for package inclusion
+include README.md
+include LICENSE
+include requirements.txt
+include pytest.ini
+include .gitignore
+
+# Include documentation
+recursive-include docs *
+recursive-include notebooks *.ipynb
+
+# Include configuration files
+include config.py
+
+# Include test files
+recursive-include tests *.py
+
+# Include example data (but not actual financial documents)
+include data/README.md
+include models/README.md
+include logs/.gitkeep
+include outputs/README.md
+
+# Exclude sensitive or large files
+exclude api_keys.txt
+exclude secrets.json
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *.so
+recursive-exclude * *.pkl
+recursive-exclude * *.npy
+recursive-exclude * *.pdf
+recursive-exclude * *.docx
+exclude .DS_Store
+exclude Thumbs.db
